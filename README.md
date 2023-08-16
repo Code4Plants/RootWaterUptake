@@ -5,7 +5,7 @@ simple root stretch with variable hydraulic properties over length
 Main file is run.m which calls to : 
 RootStretch   = Iterated matrix method of solution                
 Bvpsuite2      =  DAE type reference solution using BVPSuite
-Install BVPsuite from  https://github.com/NumODEsTUW/bvpsuite2.0
+Install BVPsuite from  https://github.com/NumODEsTUW/bvpsuite2.0       
 Tested with Matlab R2020a Update 6
 
 Jan Graefe, Richard Pauwels, Michael Bitterlich
