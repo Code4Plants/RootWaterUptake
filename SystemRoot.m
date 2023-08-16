@@ -1,15 +1,9 @@
 function [ret] = SystemRoot(request,z,za,zb,zc,t,p,lambda,lambda_p)
-% Problem definition for parameter dependent problem in Manual
+% Adapted from original problem definition for parameter dependent problem in BVPSuite Manual
 global data h dh kr kx dkx 
 LT = data.LT; rc = data.rc; r= data.r; PC = data.PC; Psis = data.Psis;  dL = data.dL;   
 G = -data.G; ML = data.ML; Mb = data.Mb;  
-
 krr = @(t)2*pi*kr(t)*r; 
-
-% Geometry functions
-%de Jong van Lier
-%G1  =   0.5*(0.5*(r^2 + 0.53^2*rc^2)+(r^2+rc^2)*log(0.53*rc/r))/(pi*(rc^2-r^2)); 
-
 %
 switch request
     case 'n'
