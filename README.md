@@ -2,7 +2,7 @@
 Matlab files for the solution of a coupled soil-root water transport of a
 simple root stretch with variable hydraulic properties over length
 
-Main file is run.m which calls to : 
+Main file is run.m whith calls to: 
 RootStretch   = Iterated matrix method of solution                
 Bvpsuite2      =  DAE type reference solution using BVPSuite
 Install BVPsuite from  https://github.com/NumODEsTUW/bvpsuite2.0       
