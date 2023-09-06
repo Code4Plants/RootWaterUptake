@@ -22,14 +22,18 @@ H(2,:)= [0.0195 0.01 0.59 1.109 -5.901  4.53];   %B11 clay
 H(3,:)= [0.0099 0.01 0.43 1.288 -2.244  2.36];   %B8 loam
 %
 S       = 1;   %choose soil from above
+EQ      = 0;   % Equidistant roots if EQ=1 , else random distributed roots 
+SR      = 0;   % Steady rate if SR = 1 (Eq.8), else  steady state (Eq.4) 
+v       = 3.0; % variance to mean ratio of counts for root clustering (Eq.17)   
+
 %
-data.LT = 30; % root length cm
-RLD     = 1.0;  %root length density cm/cm^3  
-data.rc = 1/(pi*RLD).^0.5; % equidistant parallel oriented and connected roots  
-data.r  = 0.037;  % root radius,  cm
-data.PC = -1.5*10^4;  % root collar potential  hPa
-data.Psis    = -3000;   %  hPa   Soil bulk water potential 
-data.dL = 1.0;     %  root discretisatin  
+data.dL = 1.0;     %  root segment discretisation  
+data.LT = data.dL *30 ; % total root length cm, here multiple of dL 
+data.RLD     = 1.0;  %root length density cm/cm^3  
+data.PC      = -1.5*10^4;  % root collar potential  hPa
+data.Psis    = -1000;   %  hPa   Soil bulk water potential 
+%
+data.r  = 0.037;  %  root radius,  cm
 %
 % Making tabular output for M(h) and h(M) functions (M = matrix flux
 % potential) 
@@ -38,7 +42,7 @@ reten = []; pwp = 15000;
 Qr  = H(S,2); Qs = H(S,3); alpha = H(S,1); n = H(S,4); Ks = H(S,6); L = H(S,5);  m = 1-1/n; 
 gam = @(h)(1./(1+(alpha*h).^n)).^m; 
 K      = @(h)Ks*gam(h).^L.*(1-(1-gam(h).^(1/m)).^m).^2; 
-Mflux  = @(h)integral(@(h1)K(h1),h,pwp,'ArrayValued',1) 
+Mflux  = @(h)integral(@(h1)K(h1),h,pwp+50,'ArrayValued',1) % changed to pwp +50 
 Theta  = @(h)Qr+(Qs-Qr)*gam(h);
 for h = 10:10:pwp+50
       reten = [reten; [-h Mflux(h) Theta(h)]]  ;
@@ -59,16 +63,43 @@ kx    =   @(z)piecewk(z,kxS,kxLS,-1);
 dkx   =   @(z)piecewk(z,kxS,kxLS,1); 
 kr    =   @(z)piecewk(z,krS,krLS,-1);
 
-% Choose between two geometry functions
-%steady rate, Schröder et al.  2008
-%-----------------------------------------
-rc = data.rc; r=data.r; 
-a=0.53; p = rc/r; 
-data.G = -((a^2*rc^2)/(2*r*(p^2 - 1))-(r*(p^2*log(p) + p^2*log(a) + 1/2))/(p^2 - 1))/(2*pi*r);
-%
-%steady state, Graefe et al. 2019 
-%----------------------------------------
-%data.G    =  0.5*(0.5*(r^2 + 0.53^2*rc^2)+(r^2+rc^2)*log(0.53*rc/r))/(pi*(rc^2-r^2));  
+
+if SR>0 
+    % Choose between two geometry functions
+    %steady rate, Schröder et al.  2008
+    %-----------------------------------------
+    if EQ > 0
+        data.rc = 1/(pi*data.RLD).^0.5; % equidistant parallel oriented roots  
+    else
+        if v<=1
+            data.rc = 1/(2.0825*data.RLD).^0.5 +0.204*data.r; % random distributed roots
+        else 
+            rld = data.RLD*log(v)/(v-1); 
+            data.rc = 1/(2.0825*rld).^0.5 +0.204*data.r; %  clusterd  roots
+        end
+    end
+    
+    rc = data.rc; r=data.r; 
+    a=0.53; p = rc/r; 
+    data.G = -((a^2*rc^2)/(2*r*(p^2 - 1))-(r*(p^2*log(p) + p^2*log(a) + 1/2))/(p^2 - 1))/(2*pi*r*data.RLD);
+else
+    %
+    %steady state, Graefe et al. 2019 
+    %----------------------------------------
+    if EQ > 0
+         data.rc = 1/(pi*data.RLD).^0.5; % equidistant parallel oriented and connected roots  
+    
+    else
+       if v<=1
+        data.rc = 1/(1.5338*data.RLD).^0.5 + 0.11824*data.r; % random distributed roots
+       else
+           rld = data.RLD*log(v)/(v-1);    
+           data.rc = 1/(1.5338*rld).^0.5 + 0.11824*data.r; % clusterd roots
+       end
+    end    
+    rc = data.rc; r=data.r; 
+    data.G    =  0.5*rc.^2.*(rc.^2.*log(rc/r)./(rc.^2-r^2)-0.5);
+end
 %
 %--------------------------------------------------
 % run simulation with approximate matrix solution
@@ -114,15 +145,15 @@ set(plot1,'DisplayName','Xylem-Matrix','Color',[0 0 1]);
 set(plot2,'DisplayName','Root surface-Matrix','Color',[1 0 0]);
 plot3 = plot(zy_E(:,1),zy_E(:,2),'b-'); 
 plot4 = plot(zy_E(:,1),zy_E(:,3),'r-'); 
-ylabel({'Water potential'});
-xlabel({'Length from root tip'});
+ylabel({'Water potential, hPa'});
+xlabel({'Length from root tip, cm'});
 set(plot3,'DisplayName','Xylem-DAE','Color',[0 0 1]);
 set(plot4,'DisplayName','Root surface-DAE','Color',[1 0 0]);
 legend1 = legend(axes1,'show');
 set(legend1,...
     'Position',[0.26649958624776 0.257402106706825 0.31578946808227 0.19914039568095]);
 
-disp(['Flux at Collar (Matrix):',num2str(flux_A,4), ' L^3/T'])
-disp(['Flux at Collar (DAE):',num2str(flux_E,4),  ' L^3/T'])
+disp(['Flux at Collar (Matrix):',num2str(flux_A,4), ' cm^3/d'])
+disp(['Flux at Collar (DAE):',num2str(flux_E,4),  ' cm^3/d'])
 
 

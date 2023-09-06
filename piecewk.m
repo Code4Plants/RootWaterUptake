@@ -1,6 +1,6 @@
 function kk = piecewk(t,k,z,dx)
-    % conductance profiles from piecewise function values
-    % dx < 0  return k  else d k/dt 
+    % conductance profiles k(t) and derivative dk/dt from piecewisespecified function values with t 
+    % if dx<0  return k   else dk/dt 
     for i = 1:length(t)
         if t(i)<=z(1) 
             if (dx < 0)

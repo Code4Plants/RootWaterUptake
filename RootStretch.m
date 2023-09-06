@@ -25,23 +25,22 @@ function [zy,j] = RootStretch(data, h, M, kr, kx, dkx)
 % transfer data structure to local variables  
 PC = data.PC; % Xylem water potential at root collar, i.e. Dirichlet BC
 Mb = data.Mb; % Bulk matrix potential 
+dL  = data.dL;%  % preferred root segment length default 1 cm 
 LT = data.LT; % Root length (multiple of dL)
 r  = data.r;  % Root radius
-dL  = data.dL;%  % preferred root segment length 
 %
 % algorithm parameters
 %
-
 mmx   = 15.0; %number of iterations to estimate root surface water potential Ps(z)  
 beta  = 1.25;  % empirical distortion factor of effective kx    
 optionsFZ = optimset('Display','off', 'TolX', 1.0e-6);   % Options structure for fzero
 %
 %
-ck    = [0.0,0.25,0.5,0.75,1]; % Sampling points for hydraulic properties 
+ck    = [0.0,0.25,0.5,0.75,1]; % Sampling points for hydraulic properties within dL
 sen   = 1.0/length(ck); 
 Pss   =  h(Mb); 
 %
-g = data.G ; 
+g = data.G*data.RLD ; 
 %
 jmax = LT/dL; 
 for i=1:jmax
@@ -79,7 +78,7 @@ A(j-1,j-1) = -kxc(j)*D(j-1)*v(j-1);
 %Built right side f(b, Ps)
 %//////////////////////////////
 b = zeros(jmax,1); 
-%Top row of b, PC = collar WP 
+%Top row of b, PC = collar water potential  
 j = 2; 
 b(1) = kxc(j)*v(j)*Ps(j)*(2-D(j))+ kxc(j)*v(j-1)*Ps(j-1)*(2-D(j-1))-2*kxc(j)*v(j-1)*PC; 
 %middle rows of b 
@@ -117,7 +116,7 @@ for  m=1:mmx
     j = 2; 
     A(1,1) = -(kxc(j)*D(j)*v(j) +kxc(j)*D(j-1)*v(j-1)); 
     A(1,2) = 2*kxc(j)*v(j); 
-    %middle row of a 
+    %middle row of A 
     for j=3:jmax 
         A(j-1,j-2) = 2*kxc(j)*v(j-1); 
         A(j-1,j-1) = -(kxc(j)*D(j)*v(j) +kxc(j)*D(j-1)*v(j-1)); 
@@ -128,8 +127,7 @@ for  m=1:mmx
     A(jmax,j-2) = 2*kxc(j)*v(j-1);   
     A(j-1,j-1) = -kxc(j)*D(j-1)*v(j-1); 
        
-    % Update b
-    
+    % Update b   
      j=1;
      LL = [M(Pxx(ceil(j))-0.001) Mb]; 
      f2 = @(x)x-Mb+g*k1(j)*(h(x)-0.5*(Pxx(j)+PC));  
@@ -157,9 +155,8 @@ k10 = 2*pi*kr(LT)*r ;
 f2 = @(x)x-Mb+g*k10*(h(x)-PC);  
 Mr = fzero(f2,LL, optionsFZ);  
 Ps0 = h(Mr);
-
 zy = flip([z', [PC Pxx']', [Ps0 Ps]']);
-%Eq 19
+% get basal Jx(L)
 Ps_i = Pxx(1)-Ps(1); Ps_j = PC-Ps(1); 
 j = -kxc(1)*v(1)*( (exp(-tau(1)*dL)*Ps_i-Ps_j)*exp(tau(1)*dL) ... 
                      -(-1*exp(tau(1)*dL)*Ps_i+Ps_j)*exp(-tau(1)*dL)) ; 

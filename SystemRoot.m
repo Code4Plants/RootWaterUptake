@@ -1,9 +1,9 @@
 function [ret] = SystemRoot(request,z,za,zb,zc,t,p,lambda,lambda_p)
-% Adapted from original problem definition for parameter dependent problem in BVPSuite Manual
+% Problem definition for parameter dependent problem in Manual
 global data h dh kr kx dkx 
-LT = data.LT; rc = data.rc; r= data.r; PC = data.PC; Psis = data.Psis;  dL = data.dL;   
-G = -data.G; ML = data.ML; Mb = data.Mb;  
-krr = @(t)2*pi*kr(t)*r; 
+LT = data.LT; r= data.r; PC = data.PC; Psis = data.Psis;  dL = data.dL;   
+G = -data.G*data.RLD; ML = data.ML; Mb = data.Mb;  
+krr = @(zz)2*pi*kr(zz)*r; 
 %
 switch request
     case 'n'
